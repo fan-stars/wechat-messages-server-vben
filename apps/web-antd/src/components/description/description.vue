@@ -158,7 +158,7 @@ export default defineComponent({
           {...(unref(getDescriptionsProps) as any)}
           labelStyle={{
             width: labelWidth,
-            minWidth: '60px',
+            minWidth: '100px',
             maxWidth: '300px',
           }}
         >
