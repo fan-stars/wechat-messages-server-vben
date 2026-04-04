@@ -2,9 +2,9 @@
 import type { InfraCodegenApi } from '#/api/infra/codegen';
 import type { SystemDictTypeApi } from '#/api/system/dict/type';
 
-import { nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
-import { Checkbox, Input, Select } from 'ant-design-vue';
+import { Checkbox, Input, Radio, Select } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getSimpleDictTypeList } from '#/api/system/dict/type';
@@ -14,6 +14,10 @@ import { useCodegenColumnTableColumns } from '../data';
 const props = defineProps<{
   columns?: InfraCodegenApi.CodegenColumn[];
 }>();
+
+/** 列过滤类型 */
+type FilterType = 'all' | 'create' | 'list' | 'query' | 'update';
+const filterType = ref<FilterType>('all');
 
 /** 表格配置 */
 const [Grid, gridApi] = useVbenVxeGrid({
@@ -31,25 +35,49 @@ const [Grid, gridApi] = useVbenVxeGrid({
       enabled: false,
     },
     toolbarConfig: {
-      enabled: false,
+      enabled: true,
     },
   },
 });
 
-/** 监听外部传入的列数据 */
+/** 过滤后的列数据 */
+const filteredColumns = computed(() => {
+  if (!props.columns) return [];
+  if (filterType.value === 'all') return props.columns;
+  return props.columns.filter((column) => {
+    if (filterType.value === 'create') return column.createOperation;
+    if (filterType.value === 'update') return column.updateOperation;
+    if (filterType.value === 'list') return column.listOperationResult;
+    if (filterType.value === 'query') return column.listOperation;
+    return true;
+  });
+});
+
+/** 加载数据到表格 */
+async function loadFilteredData() {
+  if (!gridApi.grid) return;
+  gridApi.grid?.loadData(filteredColumns.value);
+}
+
+/** 监听列数据变化 */
 watch(
   () => props.columns,
-  async (columns) => {
-    if (!columns) {
-      return;
-    }
+  async () => {
     await nextTick();
-    gridApi.grid?.loadData(columns);
+    await loadFilteredData();
   },
   {
     immediate: true,
   },
 );
+
+/** 监听过滤类型变化，使用 requestAnimationFrame 优化 */
+watch(filterType, async () => {
+  await nextTick();
+  requestAnimationFrame(() => {
+    loadFilteredData();
+  });
+});
 
 /** 提供获取表格数据的方法供父组件调用 */
 defineExpose({
@@ -65,6 +93,20 @@ onMounted(async () => {
 
 <template>
   <Grid>
+    <!-- 工具栏 -->
+    <template #toolbar-actions>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-gray-600">字段筛选</span>
+        <Radio.Group v-model:value="filterType">
+          <Radio.Button value="all">全部</Radio.Button>
+          <Radio.Button value="create">插入</Radio.Button>
+          <Radio.Button value="update">编辑</Radio.Button>
+          <Radio.Button value="list">列表</Radio.Button>
+          <Radio.Button value="query">查询</Radio.Button>
+        </Radio.Group>
+      </div>
+    </template>
+
     <!-- 字段描述 -->
     <template #columnComment="{ row }">
       <Input v-model:value="row.columnComment" />
