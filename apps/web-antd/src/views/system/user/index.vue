@@ -5,7 +5,7 @@ import type { SystemUserApi } from '#/api/system/user';
 
 import { ref } from 'vue';
 
-import { confirm, DocAlert, Page, useVbenModal } from '@vben/common-ui';
+import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictLabel } from '@vben/hooks';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
@@ -158,6 +158,7 @@ async function handleStatusChange(
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useGridFormSchema(),
+    wrapperClass: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
   },
   gridOptions: {
     columns: useGridColumns(handleStatusChange),

@@ -93,6 +93,7 @@ function handleRowCheckboxChange({
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useTypeGridFormSchema(),
+    wrapperClass: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
   },
   gridOptions: {
     columns: useTypeGridColumns(),
