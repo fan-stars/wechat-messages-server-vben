@@ -1,0 +1,10 @@
+{
+  "local_project_dir": ".",
+  "remote_user": "root",
+  "remote_host": "",
+  "remote_port": "22",
+  "remote_dir": "/www/wwwroot/fan-base-vben",
+  "app_name": "fan-base-vben",
+  "build_command": "pnpm run build:antd",
+  "build_output_subpath": "apps/web-antd/dist"
+}
