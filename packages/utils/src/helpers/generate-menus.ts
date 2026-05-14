@@ -8,7 +8,12 @@ import type {
   RouteRecordStringComponent,
 } from '@vben-core/typings';
 
-import { filterTree, isHttpUrl, mapTree } from '@vben-core/shared/utils';
+import {
+  filterTree,
+  isHttpUrl,
+  mapTree,
+  sortTree,
+} from '@vben-core/shared/utils';
 
 /**
  * 根据 routes 生成菜单列表
@@ -45,6 +50,7 @@ function generateMenus(
       link,
       order,
       title = '',
+      query,
     } = meta;
 
     // 确保菜单名称不为空
@@ -73,6 +79,7 @@ function generateMenus(
       badgeVariants,
       icon,
       name,
+      query,
       order,
       parent: route.parent,
       parents: route.parents,
@@ -83,7 +90,7 @@ function generateMenus(
   });
 
   // 对菜单进行排序，避免order=0时被替换成999的问题
-  menus = menus.toSorted((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
+  menus = sortTree(menus, (a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
   // 过滤掉隐藏的菜单项
   return filterTree(menus, (menu) => !!menu.show);
@@ -103,26 +110,37 @@ function convertServerMenuToRouteRecordStringComponent(
 ): RouteRecordStringComponent[] {
   const menus: RouteRecordStringComponent[] = [];
   menuList.forEach((menu) => {
-    // 处理顶级链接菜单
-    if (isHttpUrl(menu.path) && menu.parentId === 0) {
+    // 处理外链菜单（顶级或子级）
+    if (isHttpUrl(menu.path)) {
+      // add by 芋艿：如果有 ?_iframe 参数，则作为内嵌页面处理
+      // 如果有 _iframe 参数，则使用 iframeSrc；如果没有，则使用 link
+      const url = new URL(menu.path);
+      let link: string | undefined;
+      let iframeSrc: string | undefined;
+      if (url.searchParams.has('_iframe')) {
+        url.searchParams.delete('_iframe');
+        iframeSrc = url.toString();
+      } else {
+        link = menu.path;
+      }
+
       const urlMenu: RouteRecordStringComponent = {
         component: 'IFrameView',
         meta: {
           hideInMenu: !menu.visible,
           icon: menu.icon,
-          link: menu.path,
-          orderNo: menu.sort,
+          iframeSrc,
+          link,
+          order: menu.sort,
           title: menu.name,
         },
         name: menu.name,
-        path: `/${menu.path}/index`,
+        path: `${menu.id}`,
       };
       menus.push(urlMenu);
       return;
     } else if (menu.children && menu.parentId === 0) {
       menu.component = 'BasicLayout';
-    } else if (!menu.children) {
-      menu.component = menu.component as string;
     }
     if (menu.component === 'Layout') {
       menu.component = 'BasicLayout';
@@ -149,14 +167,31 @@ function convertServerMenuToRouteRecordStringComponent(
     }
     nameSet.add(finalName);
 
+    // add by 芋艿：处理 menu.component 中的 query 参数
+    // https://doc.vben.pro/guide/essentials/route.html#query
+    let query: Record<string, string> | undefined;
+    // add by 芋艿：防止 component 为 null 时，调用 indexOf 报错；关联
+    if (!menu.component) {
+      menu.component = '';
+    }
+    const queryIndex = menu.component.indexOf('?');
+    if (queryIndex !== -1) {
+      // 提取 query 字符串并解析为对象
+      const queryString = menu.component.slice(queryIndex + 1);
+      query = Object.fromEntries(new URLSearchParams(queryString).entries());
+      // 移除 component 中的 query 部分
+      menu.component = menu.component.slice(0, queryIndex);
+    }
+
     const buildMenu: RouteRecordStringComponent = {
       component: menu.component,
       meta: {
         hideInMenu: !menu.visible,
         icon: menu.icon,
         keepAlive: menu.keepAlive,
-        orderNo: menu.sort,
+        order: menu.sort,
         title: menu.name,
+        ...(query && { query }),
       },
       name: finalName,
       path: menu.path,

@@ -22,7 +22,7 @@ yarn.lock
 package-lock.json
 .VSCodeCounter
 **/backend-mock/data
-
+.omx
 # local env files
 .env.local
 .env.*.local
@@ -52,3 +52,9 @@ vite.config.ts.*
 .cursor
 
 scripts/deploy-fan/deploy-config.json
+# AI
+.agent
+.agents
+.claude
+.codex
+skills-lock.json

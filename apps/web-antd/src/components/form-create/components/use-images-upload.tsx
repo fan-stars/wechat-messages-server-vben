@@ -6,19 +6,36 @@ export function useImagesUpload() {
   return defineComponent({
     name: 'ImagesUpload',
     props: {
-      multiple: {
+      accept: {
+        type: Array,
+        default: () => ['image/jpeg', 'image/png', 'image/gif'],
+      },
+      disabled: {
         type: Boolean,
-        default: true,
+        default: false,
       },
       maxNumber: {
         type: Number,
         default: 5,
       },
+      maxSize: {
+        type: Number,
+        default: 5,
+      },
+      multiple: {
+        type: Boolean,
+        default: true,
+      },
     },
-    setup() {
-      // TODO: @puhui999：@dhb52 其实还是靠 props 默认参数起作用，没能从 formCreate 传递
-      return (props: { maxNumber?: number; multiple?: boolean }) => (
-        <ImageUpload maxNumber={props.maxNumber} multiple={props.multiple} />
+    setup(props) {
+      return () => (
+        <ImageUpload
+          accept={props.accept as string[]}
+          disabled={props.disabled}
+          maxNumber={props.maxNumber}
+          maxSize={props.maxSize}
+          multiple={props.multiple}
+        />
       );
     },
   });
