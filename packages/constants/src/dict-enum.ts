@@ -66,6 +66,8 @@ const PAY_DICT = {
 const MP_DICT = {
   MP_AUTO_REPLY_REQUEST_MATCH: 'mp_auto_reply_request_match', // 自动回复请求匹配类型
   MP_MESSAGE_TYPE: 'mp_message_type', // 消息类型
+  MP_MESSAGE_FORWARD_MODE: 'mp_message_forward_mode', // 消息转发模式（同步/异步）
+  MP_MESSAGE_FORWARD_LOG_STATUS: 'mp_message_forward_log_status', // 消息转发日志状态
 } as const;
 
 /** ========== MEMBER - 会员模块 ========== */
