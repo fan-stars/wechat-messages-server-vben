@@ -1,162 +1,16 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MpMessageForwardLogApi } from '#/api/mp/forward/log';
+import type { DescriptionItemSchema } from '#/components/description';
+
+import { h } from 'vue';
 
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
+import { formatDateTime } from '@vben/utils';
 
+import { DictTag } from '#/components/dict-tag';
 import { getRangePickerDefaultProps } from '#/utils';
-
-/** 新增/修改的表单 */
-export function useFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'id',
-      component: 'Input',
-      dependencies: {
-        triggerFields: [''],
-        show: () => false,
-      },
-    },
-    {
-      fieldName: 'ruleId',
-      label: '规则编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入规则编号',
-      },
-    },
-    {
-      fieldName: 'messageId',
-      label: '消息编号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入消息编号',
-      },
-    },
-    {
-      fieldName: 'accountId',
-      label: '公众号',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入公众号',
-      },
-    },
-    {
-      fieldName: 'appId',
-      label: 'AppId',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入AppId',
-      },
-    },
-    {
-      fieldName: 'openid',
-      label: 'OpenID',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入OpenID',
-      },
-    },
-    {
-      fieldName: 'forwardMode',
-      label: '转发模式',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.MP_MESSAGE_FORWARD_MODE, 'number'),
-        placeholder: '请选择转发模式',
-      },
-    },
-    {
-      fieldName: 'receiveResponse',
-      label: '接收响应',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
-        placeholder: '请选择接收响应',
-      },
-    },
-    {
-      fieldName: 'useResponseAsReply',
-      label: '响应回复',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
-        placeholder: '请选择响应回复',
-      },
-    },
-    {
-      fieldName: 'targetUrl',
-      label: '目标地址',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入目标地址',
-      },
-    },
-    {
-      fieldName: 'requestBody',
-      label: '请求体',
-      component: 'Textarea',
-      componentProps: {
-        placeholder: '请输入请求体',
-      },
-    },
-    {
-      fieldName: 'responseBody',
-      label: '响应体',
-      component: 'Textarea',
-      componentProps: {
-        placeholder: '请输入响应体',
-      },
-    },
-    {
-      fieldName: 'httpStatus',
-      label: 'HTTP状态',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入HTTP状态',
-      },
-    },
-    {
-      fieldName: 'status',
-      label: '执行状态',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(
-          DICT_TYPE.MP_MESSAGE_FORWARD_LOG_STATUS,
-          'number',
-        ),
-        placeholder: '请选择执行状态',
-      },
-    },
-    {
-      fieldName: 'durationMs',
-      label: '耗时',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入耗时',
-      },
-    },
-    {
-      fieldName: 'errorMsg',
-      label: '错误信息',
-      component: 'Textarea',
-      componentProps: {
-        placeholder: '请输入错误信息',
-      },
-    },
-  ];
-}
 
 /** 列表的搜索表单 */
 export function useGridFormSchema(): VbenFormSchema[] {
@@ -241,10 +95,108 @@ export function useGridFormSchema(): VbenFormSchema[] {
   ];
 }
 
+/** 详情展示 */
+export function useDetailSchema(): DescriptionItemSchema[] {
+  return [
+    {
+      field: 'id',
+      label: '编号',
+    },
+    {
+      field: 'createTime',
+      label: '创建时间',
+      render: (val) => formatDateTime(val) as string,
+    },
+    {
+      field: 'ruleId',
+      label: '规则编号',
+    },
+    {
+      field: 'messageId',
+      label: '消息编号',
+    },
+    {
+      field: 'accountId',
+      label: '公众号',
+    },
+    {
+      field: 'appId',
+      label: 'AppId',
+    },
+    {
+      field: 'openid',
+      label: 'OpenID',
+    },
+    {
+      field: 'forwardMode',
+      label: '转发模式',
+      render: (val) =>
+        h(DictTag, {
+          type: DICT_TYPE.MP_MESSAGE_FORWARD_MODE,
+          value: val,
+        }),
+    },
+    {
+      field: 'status',
+      label: '执行状态',
+      render: (val) =>
+        h(DictTag, {
+          type: DICT_TYPE.MP_MESSAGE_FORWARD_LOG_STATUS,
+          value: val,
+        }),
+    },
+    {
+      field: 'httpStatus',
+      label: 'HTTP状态',
+    },
+    {
+      field: 'durationMs',
+      label: '耗时(ms)',
+    },
+    {
+      field: 'receiveResponse',
+      label: '接收响应',
+      render: (val) =>
+        h(DictTag, {
+          type: DICT_TYPE.INFRA_BOOLEAN_STRING,
+          value: val,
+        }),
+    },
+    {
+      field: 'useResponseAsReply',
+      label: '响应回复',
+      render: (val) =>
+        h(DictTag, {
+          type: DICT_TYPE.INFRA_BOOLEAN_STRING,
+          value: val,
+        }),
+    },
+    {
+      field: 'targetUrl',
+      label: '目标地址',
+      span: 2,
+    },
+    {
+      field: 'errorMsg',
+      label: '错误信息',
+      span: 2,
+    },
+    {
+      field: 'requestBody',
+      label: '请求体',
+      span: 2,
+    },
+    {
+      field: 'responseBody',
+      label: '响应体',
+      span: 2,
+    },
+  ];
+}
+
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<MpMessageForwardLogApi.MessageForwardLog>['columns'] {
   return [
-    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '编号',
@@ -316,7 +268,7 @@ export function useGridColumns(): VxeTableGridOptions<MpMessageForwardLogApi.Mes
     },
     {
       title: '操作',
-      width: 200,
+      width: 100,
       fixed: 'right',
       slots: { default: 'actions' },
     },

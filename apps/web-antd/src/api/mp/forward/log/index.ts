@@ -15,12 +15,13 @@ export namespace MpMessageForwardLogApi {
     receiveResponse?: boolean; // 接收响应
     useResponseAsReply?: boolean; // 响应回复
     targetUrl?: string; // 目标地址
-    requestBody: string; // 请求体
-    responseBody: string; // 响应体
-    httpStatus: number; // HTTP状态
+    requestBody?: string; // 请求体
+    responseBody?: string; // 响应体
+    httpStatus?: number; // HTTP状态
     status?: number; // 执行状态
-    durationMs: number; // 耗时
-    errorMsg: string; // 错误信息
+    durationMs?: number; // 耗时
+    errorMsg?: string; // 错误信息
+    createTime?: string; // 创建时间
   }
 }
 
@@ -35,32 +36,6 @@ export function getMessageForwardLogPage(params: PageParam) {
 export function getMessageForwardLog(id: number) {
   return requestClient.get<MpMessageForwardLogApi.MessageForwardLog>(
     `/mp/message-forward-log/get?id=${id}`,
-  );
-}
-
-/** 新增转发日志 */
-export function createMessageForwardLog(
-  data: MpMessageForwardLogApi.MessageForwardLog,
-) {
-  return requestClient.post('/mp/message-forward-log/create', data);
-}
-
-/** 修改转发日志 */
-export function updateMessageForwardLog(
-  data: MpMessageForwardLogApi.MessageForwardLog,
-) {
-  return requestClient.put('/mp/message-forward-log/update', data);
-}
-
-/** 删除转发日志 */
-export function deleteMessageForwardLog(id: number) {
-  return requestClient.delete(`/mp/message-forward-log/delete?id=${id}`);
-}
-
-/** 批量删除转发日志 */
-export function deleteMessageForwardLogList(ids: number[]) {
-  return requestClient.delete(
-    `/mp/message-forward-log/delete-list?ids=${ids.join(',')}`,
   );
 }
 
