@@ -5,9 +5,10 @@ import { computed, onMounted, ref } from 'vue';
 
 import { IconifyIcon } from '@vben/icons';
 
-import { Col, message, Row } from 'ant-design-vue';
+import { Col, Row } from 'ant-design-vue';
+// import { Col, message, Row } from 'ant-design-vue';
 
-import { getTradeConfig } from '#/api/mall/trade/config';
+// import { getTradeConfig } from '#/api/mall/trade/config';
 
 /** 微信消息 - 定位 */
 defineOptions({ name: 'WxLocation' });
@@ -30,15 +31,15 @@ const mapImageUrl = computed(() => {
 });
 
 async function fetchQqMapKey() {
-  try {
-    const data = await getTradeConfig();
-    fetchedQqMapKey.value = data.tencentLbsKey ?? '';
-    if (!fetchedQqMapKey.value) {
-      message.warning('请先配置腾讯位置服务密钥');
-    }
-  } catch {
-    message.error('获取腾讯位置服务密钥失败');
-  }
+  // try {
+  //   const data = await getTradeConfig();
+  //   fetchedQqMapKey.value = data.tencentLbsKey ?? '';
+  //   if (!fetchedQqMapKey.value) {
+  //     message.warning('请先配置腾讯位置服务密钥');
+  //   }
+  // } catch {
+  //   message.error('获取腾讯位置服务密钥失败');
+  // }
 }
 
 onMounted(async () => {
