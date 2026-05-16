@@ -1,8 +1,13 @@
 <script lang="ts" setup>
+/**
+ * 转发规则列表页
+ * - CRUD、批量删除、导出
+ * - 公众号列：调用 getSimpleAccountList 做 id -> 名称映射（不改后端）
+ */
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MpMessageForwardRuleApi } from '#/api/mp/forward/rule';
 
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
@@ -10,6 +15,7 @@ import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 import { message } from 'ant-design-vue';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { getSimpleAccountList } from '#/api/mp/account';
 import {
   deleteMessageForwardRule,
   deleteMessageForwardRuleList,
@@ -21,13 +27,40 @@ import { $t } from '#/locales';
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
 
+/** 公众号 id -> 列表展示名（有名称用名称，否则用 id；不依赖后端 accountName 字段） */
+const accountDisplayMap = ref<Map<number, string>>(new Map());
+
+/** 拉取公众号简易列表并构建映射，供表格 formatter 使用 */
+async function loadAccountDisplayMap() {
+  const list = await getSimpleAccountList();
+  accountDisplayMap.value = new Map(
+    list.map((item) => [
+      item.id,
+      item.name?.trim() ? item.name : String(item.id),
+    ]),
+  );
+}
+
+/** 将 accountId 转为列表展示文案；未命中映射时回退为 id 字符串 */
+function formatAccountDisplay(accountId?: number) {
+  if (accountId == null) {
+    return '';
+  }
+  return accountDisplayMap.value.get(accountId) ?? String(accountId);
+}
+
+onMounted(() => {
+  loadAccountDisplayMap();
+});
+
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
 
-/** 刷新表格 */
-function handleRefresh() {
+/** 刷新表格（同步刷新公众号映射，避免新建/改名后列表仍显示旧名称） */
+async function handleRefresh() {
+  await loadAccountDisplayMap();
   gridApi.query();
 }
 
@@ -95,12 +128,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
     schema: useGridFormSchema(),
   },
   gridOptions: {
-    columns: useGridColumns(),
+    // 注入公众号展示函数，列表「公众号」列显示名称而非纯 id
+    columns: useGridColumns(formatAccountDisplay),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
         query: async ({ page }, formValues) => {
+          // 首屏查询前确保映射已加载，避免先渲染出 accountId 数字
+          if (accountDisplayMap.value.size === 0) {
+            await loadAccountDisplayMap();
+          }
           return await getMessageForwardRulePage({
             pageNo: page.currentPage,
             pageSize: page.pageSize,

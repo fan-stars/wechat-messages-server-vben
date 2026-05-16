@@ -1,4 +1,9 @@
 <script lang="ts" setup>
+/**
+ * 转发日志列表页
+ * - 分页查询、按条件导出
+ * - 查看单条日志详情（请求/响应体、状态、耗时）
+ */
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MpMessageForwardLogApi } from '#/api/mp/forward/log';
 
@@ -15,17 +20,13 @@ import { $t } from '#/locales';
 import { useGridColumns, useGridFormSchema } from './data';
 import Detail from './modules/detail.vue';
 
+/** 日志详情弹窗（展示请求/响应体、HTTP 状态、耗时等） */
 const [DetailModal, detailModalApi] = useVbenModal({
   connectedComponent: Detail,
   destroyOnClose: true,
 });
 
-/** 刷新表格 */
-function handleRefresh() {
-  gridApi.query();
-}
-
-/** 导出表格 */
+/** 按当前筛选条件导出 Excel */
 async function handleExport() {
   const data = await exportMessageForwardLog(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: '转发日志.xls', source: data });
@@ -41,7 +42,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     schema: useGridFormSchema(),
   },
   gridOptions: {
-    columns: useGridColumns(),
+    columns: useGridColumns(), // 列定义见 ./data.ts
     height: 'auto',
     keepSource: true,
     proxyConfig: {

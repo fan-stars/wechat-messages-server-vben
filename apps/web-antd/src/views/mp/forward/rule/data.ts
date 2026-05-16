@@ -1,11 +1,38 @@
+/**
+ * 转发规则页：表单/搜索/列表列配置
+ * 公众号字段统一走简易列表接口，下拉展示「名称（appId）」
+ */
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { MpAccountApi } from '#/api/mp/account';
 import type { MpMessageForwardRuleApi } from '#/api/mp/forward/rule';
 
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { getSimpleAccountList } from '#/api/mp/account';
 import { getRangePickerDefaultProps } from '#/utils';
+
+/** 将公众号列表转为 ApiSelect 选项：label 为「名称（appId）」 */
+function formatAccountOptions(list: MpAccountApi.Account[]) {
+  return list.map((item) => ({
+    ...item,
+    // 有 appId 时附带展示，便于区分同名公众号
+    label: `${item.name}${item.appId ? `（${item.appId}）` : ''}`,
+  }));
+}
+
+/** 公众号 ApiSelect 公共配置（表单、搜索共用） */
+const accountSelectProps = {
+  api: getSimpleAccountList,
+  labelField: 'label',
+  valueField: 'id',
+  afterFetch: formatAccountOptions,
+  showSearch: true,
+  // 按展示文案模糊搜索
+  filterOption: (input: string, option: { label?: string }) =>
+    (option?.label ?? '').toLowerCase().includes(input.toLowerCase()),
+};
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -21,10 +48,11 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'accountId',
       label: '公众号',
-      rules: 'required',
-      component: 'Input',
+      rules: 'selectRequired',
+      component: 'ApiSelect', // 绑定公众号 id，提交给后端
       componentProps: {
-        placeholder: '请输入公众号',
+        ...accountSelectProps,
+        placeholder: '请选择公众号（appId）',
       },
     },
     {
@@ -138,10 +166,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'accountId',
       label: '公众号',
-      component: 'Input',
+      component: 'ApiSelect', // 按公众号筛选规则
       componentProps: {
+        ...accountSelectProps,
         allowClear: true,
-        placeholder: '请输入公众号',
+        placeholder: '请选择公众号（appId）',
       },
     },
     {
@@ -185,8 +214,14 @@ export function useGridFormSchema(): VbenFormSchema[] {
   ];
 }
 
-/** 列表的字段 */
-export function useGridColumns(): VxeTableGridOptions<MpMessageForwardRuleApi.MessageForwardRule>['columns'] {
+/**
+ * 列表列配置
+ *
+ * @param formatAccountDisplay 由 index.vue 注入：将 accountId 转为展示名（纯前端，不改后端）
+ */
+export function useGridColumns(
+  formatAccountDisplay: (accountId?: number) => string,
+): VxeTableGridOptions<MpMessageForwardRuleApi.MessageForwardRule>['columns'] {
   return [
     { type: 'checkbox', width: 40 },
     {
@@ -197,7 +232,10 @@ export function useGridColumns(): VxeTableGridOptions<MpMessageForwardRuleApi.Me
     {
       field: 'accountId',
       title: '公众号',
-      minWidth: '90',
+      minWidth: '140',
+      // 接口仍返回 accountId，列表展示名称（无名称则显示 id）
+      formatter: ({ cellValue }) =>
+        formatAccountDisplay(cellValue as number | undefined),
     },
     {
       field: 'name',
