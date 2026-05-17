@@ -1,5 +1,10 @@
+/**
+ * 转发日志页：表单/搜索/列表列配置
+ * 公众号字段统一走简易列表接口，下拉展示「名称（appId）」
+ */
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { MpAccountApi } from '#/api/mp/account';
 import type { MpMessageForwardLogApi } from '#/api/mp/forward/log';
 import type { DescriptionItemSchema } from '#/components/description';
 
@@ -9,8 +14,28 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 import { formatDateTime } from '@vben/utils';
 
+import { getSimpleAccountList } from '#/api/mp/account';
 import { DictTag } from '#/components/dict-tag';
 import { getRangePickerDefaultProps } from '#/utils';
+
+/** 将公众号列表转为 ApiSelect 选项：label 为「名称（appId）」 */
+function formatAccountOptions(list: MpAccountApi.Account[]) {
+  return list.map((item) => ({
+    ...item,
+    label: `${item.name}${item.appId ? `（${item.appId}）` : ''}`,
+  }));
+}
+
+/** 公众号 ApiSelect 公共配置（搜索表单） */
+const accountSelectProps = {
+  api: getSimpleAccountList,
+  labelField: 'label',
+  valueField: 'id',
+  afterFetch: formatAccountOptions,
+  showSearch: true,
+  filterOption: (input: string, option: { label?: string }) =>
+    (option?.label ?? '').toLowerCase().includes(input.toLowerCase()),
+};
 
 /** 列表的搜索表单 */
 export function useGridFormSchema(): VbenFormSchema[] {
@@ -36,10 +61,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'accountId',
       label: '公众号',
-      component: 'Input',
+      component: 'ApiSelect',
       componentProps: {
+        ...accountSelectProps,
         allowClear: true,
-        placeholder: '请输入公众号',
+        placeholder: '请选择公众号（appId）',
       },
     },
     {
@@ -95,8 +121,14 @@ export function useGridFormSchema(): VbenFormSchema[] {
   ];
 }
 
-/** 详情展示 */
-export function useDetailSchema(): DescriptionItemSchema[] {
+/**
+ * 详情展示
+ *
+ * @param formatAccountDisplay 由 detail.vue 注入：accountId 转展示名
+ */
+export function useDetailSchema(
+  formatAccountDisplay: (accountId?: number) => string,
+): DescriptionItemSchema[] {
   return [
     {
       field: 'id',
@@ -118,6 +150,7 @@ export function useDetailSchema(): DescriptionItemSchema[] {
     {
       field: 'accountId',
       label: '公众号',
+      render: (val) => formatAccountDisplay(val as number | undefined),
     },
     {
       field: 'appId',
@@ -194,8 +227,14 @@ export function useDetailSchema(): DescriptionItemSchema[] {
   ];
 }
 
-/** 列表的字段 */
-export function useGridColumns(): VxeTableGridOptions<MpMessageForwardLogApi.MessageForwardLog>['columns'] {
+/**
+ * 列表列配置
+ *
+ * @param formatAccountDisplay 由 index.vue 注入：accountId 转展示名
+ */
+export function useGridColumns(
+  formatAccountDisplay: (accountId?: number) => string,
+): VxeTableGridOptions<MpMessageForwardLogApi.MessageForwardLog>['columns'] {
   return [
     {
       field: 'id',
@@ -215,7 +254,9 @@ export function useGridColumns(): VxeTableGridOptions<MpMessageForwardLogApi.Mes
     {
       field: 'accountId',
       title: '公众号',
-      minWidth: '90',
+      minWidth: '140',
+      formatter: ({ cellValue }) =>
+        formatAccountDisplay(cellValue as number | undefined),
     },
     {
       field: 'appId',

@@ -2,15 +2,18 @@
 /**
  * 转发日志列表页
  * - 分页查询、按条件导出
- * - 查看单条日志详情（请求/响应体、状态、耗时）
+ * - 公众号列/筛选：getSimpleAccountList 做 id -> 名称映射（不改后端）
  */
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MpMessageForwardLogApi } from '#/api/mp/forward/log';
+
+import { onMounted, ref } from 'vue';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
+import { getSimpleAccountList } from '#/api/mp/account';
 import {
   exportMessageForwardLog,
   getMessageForwardLogPage,
@@ -20,7 +23,33 @@ import { $t } from '#/locales';
 import { useGridColumns, useGridFormSchema } from './data';
 import Detail from './modules/detail.vue';
 
-/** 日志详情弹窗（展示请求/响应体、HTTP 状态、耗时等） */
+/** 公众号 id -> 列表展示名 */
+const accountDisplayMap = ref<Map<number, string>>(new Map());
+
+/** 拉取公众号简易列表并构建映射 */
+async function loadAccountDisplayMap() {
+  const list = await getSimpleAccountList();
+  accountDisplayMap.value = new Map(
+    list.map((item) => [
+      item.id,
+      item.name?.trim() ? item.name : String(item.id),
+    ]),
+  );
+}
+
+/** accountId 转展示文案；未命中时回退 id */
+function formatAccountDisplay(accountId?: number) {
+  if (accountId == null) {
+    return '';
+  }
+  return accountDisplayMap.value.get(accountId) ?? String(accountId);
+}
+
+onMounted(() => {
+  loadAccountDisplayMap();
+});
+
+/** 日志详情弹窗 */
 const [DetailModal, detailModalApi] = useVbenModal({
   connectedComponent: Detail,
   destroyOnClose: true,
@@ -42,12 +71,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
     schema: useGridFormSchema(),
   },
   gridOptions: {
-    columns: useGridColumns(), // 列定义见 ./data.ts
+    columns: useGridColumns(formatAccountDisplay),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
       ajax: {
         query: async ({ page }, formValues) => {
+          if (accountDisplayMap.value.size === 0) {
+            await loadAccountDisplayMap();
+          }
           return await getMessageForwardLogPage({
             pageNo: page.currentPage,
             pageSize: page.pageSize,

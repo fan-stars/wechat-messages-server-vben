@@ -5,6 +5,7 @@ import { ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
+import { getSimpleAccountList } from '#/api/mp/account';
 import { getMessageForwardLog } from '#/api/mp/forward/log';
 import { useDescription } from '#/components/description';
 
@@ -12,10 +13,30 @@ import { useDetailSchema } from '../data';
 
 const formData = ref<MpMessageForwardLogApi.MessageForwardLog>();
 
+/** 公众号 id -> 详情展示名 */
+const accountDisplayMap = ref<Map<number, string>>(new Map());
+
+async function loadAccountDisplayMap() {
+  const list = await getSimpleAccountList();
+  accountDisplayMap.value = new Map(
+    list.map((item) => [
+      item.id,
+      item.name?.trim() ? item.name : String(item.id),
+    ]),
+  );
+}
+
+function formatAccountDisplay(accountId?: number) {
+  if (accountId == null) {
+    return '';
+  }
+  return accountDisplayMap.value.get(accountId) ?? String(accountId);
+}
+
 const [Descriptions] = useDescription({
   bordered: true,
   column: 2,
-  schema: useDetailSchema(),
+  schema: useDetailSchema(formatAccountDisplay),
 });
 
 const [Modal, modalApi] = useVbenModal({
@@ -30,6 +51,7 @@ const [Modal, modalApi] = useVbenModal({
     }
     modalApi.lock();
     try {
+      await loadAccountDisplayMap();
       formData.value = await getMessageForwardLog(data.id);
     } finally {
       modalApi.unlock();
