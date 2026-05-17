@@ -22,6 +22,9 @@ function formatAccountOptions(list: MpAccountApi.Account[]) {
   }));
 }
 
+/** 异步转发模式（与后端 MessageForwardModeEnum.ASYNC 一致） */
+const FORWARD_MODE_ASYNC = 2;
+
 /** 公众号 ApiSelect 公共配置（表单、搜索共用） */
 const accountSelectProps = {
   api: getSimpleAccountList,
@@ -102,6 +105,7 @@ export function useFormSchema(): VbenFormSchema[] {
         options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         placeholder: '请选择接收响应',
       },
+      help: '开启后保存下游 HTTP 响应体到转发日志；异步模式仅记录，不回复微信',
     },
     {
       fieldName: 'useResponseAsReply',
@@ -112,6 +116,16 @@ export function useFormSchema(): VbenFormSchema[] {
         options: getDictOptions(DICT_TYPE.INFRA_BOOLEAN_STRING, 'boolean'),
         placeholder: '请选择响应回复',
       },
+      dependencies: {
+        triggerFields: ['forwardMode'],
+        disabled: (values) => values.forwardMode === FORWARD_MODE_ASYNC,
+        trigger(values, formApi) {
+          if (values.forwardMode === FORWARD_MODE_ASYNC) {
+            formApi.setFieldValue('useResponseAsReply', false);
+          }
+        },
+      },
+      help: '仅同步模式可将响应作为微信被动回复；异步模式不可选',
     },
     {
       fieldName: 'targetUrl',
@@ -124,11 +138,13 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'timeoutMs',
-      label: '超时',
+      label: '超时(ms)',
       rules: 'required',
-      component: 'Input',
+      component: 'InputNumber',
       componentProps: {
-        placeholder: '请输入超时',
+        min: 1,
+        placeholder: '请输入超时，单位：毫秒',
+        class: 'w-full',
       },
     },
     {
@@ -285,8 +301,10 @@ export function useGridColumns(
     },
     {
       field: 'timeoutMs',
-      title: '超时',
+      title: '超时(ms)',
       minWidth: '120',
+      formatter: ({ cellValue }) =>
+        cellValue == null || cellValue === '' ? '' : `${cellValue} ms`,
     },
     {
       field: 'enableLog',

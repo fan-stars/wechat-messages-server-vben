@@ -31,7 +31,7 @@ const [Form, formApi] = useVbenForm({
       class: 'w-full',
     },
     formItemClass: 'col-span-2',
-    labelWidth: 80,
+    labelWidth: 100, // 避免「接收响应」「响应回复」等四字标签换行
   },
   layout: 'horizontal',
   schema: useFormSchema(),
