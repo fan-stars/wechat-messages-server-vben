@@ -21,6 +21,13 @@ export namespace MpMessageForwardRuleApi {
   }
 }
 
+/** 查询转发规则精简列表（日志页规则名称映射等） */
+export function getSimpleMessageForwardRuleList() {
+  return requestClient.get<MpMessageForwardRuleApi.MessageForwardRule[]>(
+    '/mp/message-forward-rule/list-all-simple',
+  );
+}
+
 /** 查询转发规则分页 */
 export function getMessageForwardRulePage(params: PageParam) {
   return requestClient.get<

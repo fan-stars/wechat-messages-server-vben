@@ -3,6 +3,7 @@
  * 转发日志列表页
  * - 分页查询、按条件导出
  * - 公众号列/筛选：getSimpleAccountList 做 id -> 名称映射（不改后端）
+ * - 转发规则列：规则分页拉取 id -> 名称，展示「名称(id)」
  */
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MpMessageForwardLogApi } from '#/api/mp/forward/log';
@@ -14,6 +15,7 @@ import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getSimpleAccountList } from '#/api/mp/account';
+import { getSimpleMessageForwardRuleList } from '#/api/mp/forward/rule';
 import {
   exportMessageForwardLog,
   getMessageForwardLogPage,
@@ -25,6 +27,8 @@ import Detail from './modules/detail.vue';
 
 /** 公众号 id -> 列表展示名 */
 const accountDisplayMap = ref<Map<number, string>>(new Map());
+/** 转发规则 id -> 规则名称 */
+const ruleDisplayMap = ref<Map<number, string>>(new Map());
 
 /** 拉取公众号简易列表并构建映射 */
 async function loadAccountDisplayMap() {
@@ -45,8 +49,29 @@ function formatAccountDisplay(accountId?: number) {
   return accountDisplayMap.value.get(accountId) ?? String(accountId);
 }
 
+/** 拉取转发规则并构建 id -> 名称映射 */
+async function loadRuleDisplayMap() {
+  const list = await getSimpleMessageForwardRuleList();
+  ruleDisplayMap.value = new Map(
+    list.map((item) => [
+      item.id,
+      item.name?.trim() ? item.name : String(item.id),
+    ]),
+  );
+}
+
+/** ruleId 转「名称(id)」；未命中时回退 id */
+function formatRuleDisplay(ruleId?: number) {
+  if (ruleId == null) {
+    return '';
+  }
+  const name = ruleDisplayMap.value.get(ruleId);
+  return name ? `${name}(${ruleId})` : String(ruleId);
+}
+
 onMounted(() => {
   loadAccountDisplayMap();
+  loadRuleDisplayMap();
 });
 
 /** 日志详情弹窗 */
@@ -71,7 +96,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     schema: useGridFormSchema(),
   },
   gridOptions: {
-    columns: useGridColumns(formatAccountDisplay),
+    columns: useGridColumns(formatAccountDisplay, formatRuleDisplay),
     height: 'auto',
     keepSource: true,
     proxyConfig: {
@@ -79,6 +104,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
         query: async ({ page }, formValues) => {
           if (accountDisplayMap.value.size === 0) {
             await loadAccountDisplayMap();
+          }
+          if (ruleDisplayMap.value.size === 0) {
+            await loadRuleDisplayMap();
           }
           return await getMessageForwardLogPage({
             pageNo: page.currentPage,

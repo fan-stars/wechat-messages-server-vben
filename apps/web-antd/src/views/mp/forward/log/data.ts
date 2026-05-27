@@ -125,9 +125,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
  * 详情展示
  *
  * @param formatAccountDisplay 由 detail.vue 注入：accountId 转展示名
+ * @param formatRuleDisplay 由 detail.vue 注入：ruleId 转「名称(id)」
  */
 export function useDetailSchema(
   formatAccountDisplay: (accountId?: number) => string,
+  formatRuleDisplay: (ruleId?: number) => string,
 ): DescriptionItemSchema[] {
   return [
     {
@@ -141,7 +143,8 @@ export function useDetailSchema(
     },
     {
       field: 'ruleId',
-      label: '规则编号',
+      label: '转发规则',
+      render: (val) => formatRuleDisplay(val as number | undefined),
     },
     {
       field: 'messageId',
@@ -231,9 +234,11 @@ export function useDetailSchema(
  * 列表列配置
  *
  * @param formatAccountDisplay 由 index.vue 注入：accountId 转展示名
+ * @param formatRuleDisplay 由 index.vue 注入：ruleId 转「名称(id)」
  */
 export function useGridColumns(
   formatAccountDisplay: (accountId?: number) => string,
+  formatRuleDisplay: (ruleId?: number) => string,
 ): VxeTableGridOptions<MpMessageForwardLogApi.MessageForwardLog>['columns'] {
   return [
     {
@@ -243,8 +248,10 @@ export function useGridColumns(
     },
     {
       field: 'ruleId',
-      title: '规则编号',
-      minWidth: '90',
+      title: '转发规则',
+      minWidth: '160',
+      formatter: ({ cellValue }) =>
+        formatRuleDisplay(cellValue as number | undefined),
     },
     {
       field: 'messageId',

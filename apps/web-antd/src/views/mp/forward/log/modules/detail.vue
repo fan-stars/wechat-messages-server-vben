@@ -7,6 +7,7 @@ import { useVbenModal } from '@vben/common-ui';
 
 import { getSimpleAccountList } from '#/api/mp/account';
 import { getMessageForwardLog } from '#/api/mp/forward/log';
+import { getSimpleMessageForwardRuleList } from '#/api/mp/forward/rule';
 import { useDescription } from '#/components/description';
 
 import { useDetailSchema } from '../data';
@@ -15,6 +16,8 @@ const formData = ref<MpMessageForwardLogApi.MessageForwardLog>();
 
 /** 公众号 id -> 详情展示名 */
 const accountDisplayMap = ref<Map<number, string>>(new Map());
+/** 转发规则 id -> 规则名称 */
+const ruleDisplayMap = ref<Map<number, string>>(new Map());
 
 async function loadAccountDisplayMap() {
   const list = await getSimpleAccountList();
@@ -33,10 +36,28 @@ function formatAccountDisplay(accountId?: number) {
   return accountDisplayMap.value.get(accountId) ?? String(accountId);
 }
 
+async function loadRuleDisplayMap() {
+  const list = await getSimpleMessageForwardRuleList();
+  ruleDisplayMap.value = new Map(
+    list.map((item) => [
+      item.id,
+      item.name?.trim() ? item.name : String(item.id),
+    ]),
+  );
+}
+
+function formatRuleDisplay(ruleId?: number) {
+  if (ruleId == null) {
+    return '';
+  }
+  const name = ruleDisplayMap.value.get(ruleId);
+  return name ? `${name}(${ruleId})` : String(ruleId);
+}
+
 const [Descriptions] = useDescription({
   bordered: true,
   column: 2,
-  schema: useDetailSchema(formatAccountDisplay),
+  schema: useDetailSchema(formatAccountDisplay, formatRuleDisplay),
 });
 
 const [Modal, modalApi] = useVbenModal({
@@ -51,7 +72,7 @@ const [Modal, modalApi] = useVbenModal({
     }
     modalApi.lock();
     try {
-      await loadAccountDisplayMap();
+      await Promise.all([loadAccountDisplayMap(), loadRuleDisplayMap()]);
       formData.value = await getMessageForwardLog(data.id);
     } finally {
       modalApi.unlock();
