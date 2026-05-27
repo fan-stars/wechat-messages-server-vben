@@ -15,11 +15,11 @@ import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getSimpleAccountList } from '#/api/mp/account';
-import { getSimpleMessageForwardRuleList } from '#/api/mp/forward/rule';
 import {
   exportMessageForwardLog,
   getMessageForwardLogPage,
 } from '#/api/mp/forward/log';
+import { getSimpleMessageForwardRuleList } from '#/api/mp/forward/rule';
 import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -30,9 +30,10 @@ const accountDisplayMap = ref<Map<number, string>>(new Map());
 /** 转发规则 id -> 规则名称 */
 const ruleDisplayMap = ref<Map<number, string>>(new Map());
 
-/** 拉取公众号简易列表并构建映射 */
-async function loadAccountDisplayMap() {
-  const list = await getSimpleAccountList();
+/** 构建公众号 id -> 展示名 */
+function buildAccountDisplayMap(
+  list: Awaited<ReturnType<typeof getSimpleAccountList>>,
+) {
   accountDisplayMap.value = new Map(
     list.map((item) => [
       item.id,
@@ -49,15 +50,26 @@ function formatAccountDisplay(accountId?: number) {
   return accountDisplayMap.value.get(accountId) ?? String(accountId);
 }
 
-/** 拉取转发规则并构建 id -> 名称映射 */
-async function loadRuleDisplayMap() {
-  const list = await getSimpleMessageForwardRuleList();
+/** 构建转发规则 id -> 名称 */
+function buildRuleDisplayMap(
+  list: Awaited<ReturnType<typeof getSimpleMessageForwardRuleList>>,
+) {
   ruleDisplayMap.value = new Map(
     list.map((item) => [
       item.id,
       item.name?.trim() ? item.name : String(item.id),
     ]),
   );
+}
+
+/** 公众号 + 转发规则映射（与搜索 ApiSelect 共用接口缓存，只请求各 1 次） */
+async function loadDisplayMaps() {
+  const [accounts, rules] = await Promise.all([
+    getSimpleAccountList(),
+    getSimpleMessageForwardRuleList(),
+  ]);
+  buildAccountDisplayMap(accounts);
+  buildRuleDisplayMap(rules);
 }
 
 /** ruleId 转「名称(id)」；未命中时回退 id */
@@ -70,8 +82,7 @@ function formatRuleDisplay(ruleId?: number) {
 }
 
 onMounted(() => {
-  loadAccountDisplayMap();
-  loadRuleDisplayMap();
+  loadDisplayMaps();
 });
 
 /** 日志详情弹窗 */
@@ -102,12 +113,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async ({ page }, formValues) => {
-          if (accountDisplayMap.value.size === 0) {
-            await loadAccountDisplayMap();
-          }
-          if (ruleDisplayMap.value.size === 0) {
-            await loadRuleDisplayMap();
-          }
           return await getMessageForwardLogPage({
             pageNo: page.currentPage,
             pageSize: page.pageSize,

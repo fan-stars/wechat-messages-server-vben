@@ -33,11 +33,24 @@ export function getAccount(id: number) {
   return requestClient.get<MpAccountApi.Account>(`/mp/account/get?id=${id}`);
 }
 
-/** 查询公众号账号列表 */
+let simpleAccountListPromise: null | Promise<MpAccountApi.Account[]> = null;
+
+/** 查询公众号账号精简列表（同页并发只发一次请求） */
 export function getSimpleAccountList() {
-  return requestClient.get<MpAccountApi.Account[]>(
-    '/mp/account/list-all-simple',
-  );
+  if (!simpleAccountListPromise) {
+    simpleAccountListPromise = requestClient
+      .get<MpAccountApi.Account[]>('/mp/account/list-all-simple')
+      .catch((error) => {
+        simpleAccountListPromise = null;
+        throw error;
+      });
+  }
+  return simpleAccountListPromise;
+}
+
+/** 公众号精简列表缓存失效（账号增删改后调用） */
+export function invalidateSimpleAccountListCache() {
+  simpleAccountListPromise = null;
 }
 
 /** 新增公众号账号 */

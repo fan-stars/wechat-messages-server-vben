@@ -21,11 +21,28 @@ export namespace MpMessageForwardRuleApi {
   }
 }
 
-/** 查询转发规则精简列表（日志页规则名称映射等） */
+let simpleMessageForwardRuleListPromise: null | Promise<
+  MpMessageForwardRuleApi.MessageForwardRule[]
+> = null;
+
+/** 查询转发规则精简列表（同页并发只发一次请求） */
 export function getSimpleMessageForwardRuleList() {
-  return requestClient.get<MpMessageForwardRuleApi.MessageForwardRule[]>(
-    '/mp/message-forward-rule/list-all-simple',
-  );
+  if (!simpleMessageForwardRuleListPromise) {
+    simpleMessageForwardRuleListPromise = requestClient
+      .get<MpMessageForwardRuleApi.MessageForwardRule[]>(
+        '/mp/message-forward-rule/list-all-simple',
+      )
+      .catch((error) => {
+        simpleMessageForwardRuleListPromise = null;
+        throw error;
+      });
+  }
+  return simpleMessageForwardRuleListPromise;
+}
+
+/** 转发规则精简列表缓存失效（规则增删改后调用） */
+export function invalidateSimpleMessageForwardRuleListCache() {
+  simpleMessageForwardRuleListPromise = null;
 }
 
 /** 查询转发规则分页 */
