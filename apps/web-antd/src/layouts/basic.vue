@@ -17,7 +17,7 @@ import {
   TenantDropdown,
   UserDropdown,
 } from '@vben/layouts';
-import { preferences } from '@vben/preferences';
+import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { formatDateTime, openWindow } from '@vben/utils';
 
@@ -45,6 +45,8 @@ const { closeOtherTabs, refreshTab } = useTabs();
 const notifications = ref<NotificationItem[]>([]);
 const unreadCount = ref(0);
 const showDot = computed(() => unreadCount.value > 0);
+
+const { isDark } = usePreferences();
 
 const menus = computed(() => [
   {
@@ -175,14 +177,57 @@ onMounted(() => {
   );
 });
 
+const handleClick = (item: NotificationItem) => {
+  // 如果通知项有链接，点击时跳转
+  if (item.link) {
+    navigateTo(item.link, item.query, item.state);
+  }
+};
+
+function navigateTo(
+  link: string,
+  query?: Record<string, any>,
+  state?: Record<string, any>,
+) {
+  if (link.startsWith('http://') || link.startsWith('https://')) {
+    // 外部链接，在新标签页打开
+    window.open(link, '_blank');
+  } else {
+    // 内部路由链接，支持 query 参数和 state
+    router.push({
+      path: link,
+      query: query || {},
+      state,
+    });
+  }
+}
+
 watch(
   () => ({
     enable: preferences.app.watermark,
     content: preferences.app.watermarkContent,
+    isDark: isDark.value,
   }),
-  async ({ enable, content }) => {
+  async ({ enable, content, isDark: isDarkValue }) => {
     if (enable) {
+      const watermarkColor = isDarkValue
+        ? 'rgba(255, 255, 255, 0.12)'
+        : 'rgba(0, 0, 0, 0.12)';
+
       await updateWatermark({
+        advancedStyle: {
+          colorStops: [
+            {
+              color: watermarkColor,
+              offset: 0,
+            },
+            {
+              color: watermarkColor,
+              offset: 1,
+            },
+          ],
+          type: 'linear',
+        },
         content:
           content ||
           `${userStore.userInfo?.id} - ${userStore.userInfo?.nickname}`,
@@ -207,6 +252,7 @@ watch(
         :description="userStore.userInfo?.email"
         :tag-text="userStore.userInfo?.username"
         @logout="handleLogout"
+        @clear-preferences-and-logout="handleLogout"
       />
     </template>
     <template #notification>
@@ -218,6 +264,7 @@ watch(
         @view-all="handleNotificationViewAll"
         @open="handleNotificationOpen"
         @read="handleNotificationRead"
+        @on-click="handleClick"
       />
     </template>
     <template #header-right-1>

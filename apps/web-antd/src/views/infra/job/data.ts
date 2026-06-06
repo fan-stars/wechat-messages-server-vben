@@ -1,5 +1,6 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { InfraJobApi } from '#/api/infra/job';
 import type { DescriptionItemSchema } from '#/components/description';
 
 import { h, markRaw } from 'vue';
@@ -13,7 +14,12 @@ import { Timeline } from 'ant-design-vue';
 import { CronTab } from '#/components/cron-tab';
 import { DictTag } from '#/components/dict-tag';
 
-/** 新增/修改的表单 */
+import JobHandlerParamEditor from './components/JobHandlerParamEditor.vue';
+import { formatHandlerParamDisplay } from './utils/job-handler-param';
+
+/**
+ * 新增/修改的表单
+ */
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
@@ -49,9 +55,37 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'handlerParam',
       label: '处理器的参数',
+      // 自定义组件：新建单行输入，编辑结构化（见 JobHandlerParamEditor）
+      component: markRaw(JobHandlerParamEditor),
+      modelPropName: 'value',
+      formItemClass: 'col-span-2 items-start',
+      help: '新建时手填 JSON 或文本；编辑时按处理器定义展示结构化表单',
+      dependencies: {
+        triggerFields: ['id', 'handlerName', 'paramFields', 'paramShape'],
+        componentProps: (values) => ({
+          isEdit: !!values.id,
+          paramFields: (values.paramFields ??
+            []) as InfraJobApi.JobParamField[],
+          paramShape: (values.paramShape ??
+            'object') as InfraJobApi.JobParamShape,
+        }),
+      },
+    },
+    // 详情元数据：仅编辑时 get 返回，供 handlerParam 组件读取，提交时需过滤
+    {
+      fieldName: 'paramFields',
       component: 'Input',
-      componentProps: {
-        placeholder: '请输入处理器的参数',
+      dependencies: {
+        triggerFields: [''],
+        show: () => false,
+      },
+    },
+    {
+      fieldName: 'paramShape',
+      component: 'Input',
+      dependencies: {
+        triggerFields: [''],
+        show: () => false,
       },
     },
     {
@@ -68,6 +102,7 @@ export function useFormSchema(): VbenFormSchema[] {
       label: '重试次数',
       component: 'InputNumber',
       componentProps: {
+        class: '!w-full',
         placeholder: '请输入重试次数。设置为 0 时，不进行重试',
         min: 0,
       },
@@ -78,6 +113,7 @@ export function useFormSchema(): VbenFormSchema[] {
       label: '重试间隔',
       component: 'InputNumber',
       componentProps: {
+        class: '!w-full',
         placeholder: '请输入重试间隔，单位：毫秒。设置为 0 时，无需间隔',
         min: 0,
       },
@@ -88,6 +124,7 @@ export function useFormSchema(): VbenFormSchema[] {
       label: '监控超时时间',
       component: 'InputNumber',
       componentProps: {
+        class: '!w-full',
         placeholder: '请输入监控超时时间，单位：毫秒',
         min: 0,
       },
@@ -204,6 +241,16 @@ export function useDetailSchema(): DescriptionItemSchema[] {
     {
       field: 'handlerParam',
       label: '处理器的参数',
+      render: (val) => {
+        return h(
+          'pre',
+          {
+            class:
+              'mb-0 max-h-[240px] overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted p-2 text-xs text-foreground',
+          },
+          formatHandlerParamDisplay(val as string),
+        );
+      },
     },
     {
       field: 'cronExpression',

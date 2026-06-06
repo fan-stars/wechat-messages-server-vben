@@ -16,6 +16,7 @@ export {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsDown,
   ChevronsLeft,
   ChevronsRight,
   Circle,
@@ -35,7 +36,6 @@ export {
   EyeOff,
   FoldHorizontal,
   Fullscreen,
-  Github,
   Grid,
   Grip,
   GripVertical,
@@ -98,4 +98,4 @@ export {
   Upload,
   UserRoundPen,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
