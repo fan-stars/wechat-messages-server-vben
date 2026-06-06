@@ -8,10 +8,17 @@ import { useVbenModal } from '@vben/common-ui';
 import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import { createJob, getJob, updateJob } from '#/api/infra/job';
+import {
+  createJob,
+  getJob,
+  pickJobSavePayload,
+  updateJob,
+} from '#/api/infra/job';
 import { $t } from '#/locales';
 
 import { useFormSchema } from '../data';
+
+defineOptions({ name: 'InfraJobForm' });
 
 const emit = defineEmits(['success']);
 const formData = ref<InfraJobApi.Job>();
@@ -41,8 +48,10 @@ const [Modal, modalApi] = useVbenModal({
       return;
     }
     modalApi.lock();
-    // 提交表单
-    const data = (await formApi.getValues()) as InfraJobApi.Job;
+    // 过滤 paramFields / paramShape 等只读字段，仅提交 JobSavePayload
+    const data = pickJobSavePayload(
+      (await formApi.getValues()) as InfraJobApi.Job,
+    );
     try {
       await (formData.value?.id ? updateJob(data) : createJob(data));
       // 关闭并提示
@@ -60,13 +69,22 @@ const [Modal, modalApi] = useVbenModal({
     }
     // 加载数据
     const data = modalApi.getData<InfraJobApi.Job>();
-    if (!data || !data.id) {
+    // 新建：无 paramFields，handlerParam 为单行文本
+    if (!data?.id) {
+      formData.value = undefined;
+      await formApi.resetForm();
+      await formApi.setValues({
+        handlerParam: '',
+        retryCount: 0,
+        retryInterval: 0,
+        monitorTimeout: 0,
+      });
       return;
     }
+    // 编辑：get 详情含 paramFields + paramShape，驱动结构化参数表单
     modalApi.lock();
     try {
       formData.value = await getJob(data.id);
-      // 设置到 values
       await formApi.setValues(formData.value);
     } finally {
       modalApi.unlock();
@@ -76,7 +94,7 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="getTitle" class="w-2/5">
+  <Modal :title="getTitle" class="w-3/5">
     <Form class="mx-4" />
   </Modal>
 </template>

@@ -3,6 +3,23 @@ import type { PageParam, PageResult } from '@vben/request';
 import { requestClient } from '#/api/request';
 
 export namespace InfraJobApi {
+  /**
+   * 任务处理器参数形态
+   * object / array / string_array
+   */
+  export type JobParamShape = 'array' | 'object' | 'string_array';
+
+  /**
+   * 任务处理器参数字段
+   * 单条配置内的表单项定义
+   */
+  export interface JobParamField {
+    key: string;
+    label: string;
+    defaultValue?: boolean | number | string;
+    required?: boolean;
+  }
+
   /** 任务信息 */
   export interface Job {
     id?: number;
@@ -16,7 +33,52 @@ export namespace InfraJobApi {
     monitorTimeout: number;
     createTime?: Date;
     nextTimes?: Date[];
+    /**
+     * 处理器参数字段定义
+     * 仅编辑时 get 详情返回
+     */
+    paramFields?: JobParamField[];
+    /**
+     * 处理器参数形态
+     * 仅编辑时 get 详情返回
+     */
+    paramShape?: JobParamShape;
   }
+
+  /**
+   * 创建/修改任务提交体
+   * 不含 paramFields、paramShape 等详情元数据
+   */
+  export type JobSavePayload = Pick<
+    Job,
+    | 'cronExpression'
+    | 'handlerName'
+    | 'handlerParam'
+    | 'id'
+    | 'monitorTimeout'
+    | 'name'
+    | 'retryCount'
+    | 'retryInterval'
+  >;
+}
+
+/**
+ * 从表单值提取任务保存 payload
+ * 过滤 paramFields、paramShape 等只读字段
+ */
+export function pickJobSavePayload(
+  job: InfraJobApi.Job,
+): InfraJobApi.JobSavePayload {
+  return {
+    id: job.id,
+    name: job.name,
+    handlerName: job.handlerName,
+    handlerParam: job.handlerParam,
+    cronExpression: job.cronExpression,
+    retryCount: job.retryCount,
+    retryInterval: job.retryInterval,
+    monitorTimeout: job.monitorTimeout,
+  };
 }
 
 /** 查询任务列表 */
@@ -32,12 +94,12 @@ export function getJob(id: number) {
 }
 
 /** 新增任务 */
-export function createJob(data: InfraJobApi.Job) {
+export function createJob(data: InfraJobApi.JobSavePayload) {
   return requestClient.post('/infra/job/create', data);
 }
 
 /** 修改定时任务调度 */
-export function updateJob(data: InfraJobApi.Job) {
+export function updateJob(data: InfraJobApi.JobSavePayload) {
   return requestClient.put('/infra/job/update', data);
 }
 
