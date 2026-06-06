@@ -5,7 +5,7 @@ import { computed } from 'vue';
 
 import { IconifyIcon } from '@vben/icons';
 
-import draggable from 'vuedraggable';
+import draggable from 'vuedraggable/src/vuedraggable';
 
 const props = defineProps<{
   accountId: number;
